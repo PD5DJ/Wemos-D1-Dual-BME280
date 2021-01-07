@@ -10,11 +10,15 @@
 #include <Adafruit_BME280.h> //https://github.com/adafruit/Adafruit_BME280_Library
 
 // assign the ESP8266 pins to arduino pins
+#define D0 16
 #define D1 5
 #define D2 4
 #define D3 0
 #define D4 2
 #define D5 14
+#define D6 12
+#define D7 13
+#define D8 15
 
 #define BME_SCK D1
 #define BME_MISO D5
@@ -57,8 +61,8 @@ String output5State = "off";
 String output4State = "off";
 
 // Assign output variables to GPIO pins
-const int output5 = 5;
-const int output4 = 4;
+const int output5 = D0;
+const int output4 = D8;
 
 // Current time
 unsigned long currentTime = millis();
@@ -152,8 +156,10 @@ void loop(){
             
             // Feel free to change the background-color and font-size attributes to fit your preferences
             client.println("<style>");
+            client.println("body { background-color: #CCCCCC ;}");
             client.println(".values { font-weight: bold; font-size: 50px ; color: red; }");
-            client.println("table, td, th { border: 1px solid black; width: 300px; text-align:center ;}");
+            client.println("table, th { font-size: 40px ; border: 1px solid black; width: 300px; text-align:center ;}");
+            client.println("table, td { font-size: 30px ; border: 1px solid black; width: 300px; text-align:center ;}");
             client.println("table { border-collapse: collapse; background-color: #bde9ba; width: 600px;}");
             client.println("h1 { font-size: 50px ; color: blue;  text-align: center;}");
             client.println(".button { background-color: #195B6A; border: none; color: white; padding: 16px 40px;text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}");
@@ -164,13 +170,12 @@ void loop(){
             client.println("<body>");
             client.println("<h1>Filament Dryer Monitor</h1>");
             client.println("<center><table border='1'>");
-            client.println("<tr><th colspan='2'>BME Readout</th><th>I/O Control</th></tr>");
-            client.println("<tr><td>BME 1</td><td style='text-align:center'>BME 2</td><td>I/O</td></tr>");
-            client.println("<tr><td>Temperature:<br><span class='values'>" + String(BME1_temperature,1 ) + char(176) + "C</span></td><td>Temperature:<br><span class='values'>" + String(BME2_temperature,1 ) + char(176) + "C</span></td>");
+            client.println("<tr><th>Dryer 1</th><th>Dryer 2</th><th>Power</th></tr>");
+            client.println("<tr><td>Temperature:<br><br><span class='values'>" + String(BME1_temperature,1 ) + char(176) + "C</span></td><td>Temperature:<br><br><span class='values'>" + String(BME2_temperature,1 ) + char(176) + "C</span></td>");
             client.println("<td>");
             
             // Display current state, and ON/OFF buttons for GPIO 4  
-            client.println("<p>GPIO 4 - State " + output4State + "</p>");
+            client.println("<p>Dryer 1<br>Status: " + output4State + "</p>");
             // If the output4State is off, it displays the ON button       
             if (output4State=="off") {
               client.println("<p><a href=\"/4/on\"><button class=\"button\">ON</button></a></p>");
@@ -179,11 +184,11 @@ void loop(){
             }
                         
             client.println("</td><tr>  "); 
-            client.println("<tr><td>Humidity:<br><span class='values'>" + String(BME1_humidity,0) + " %</span></td><td>Humidity:<br><span class='values'>" + String(BME2_humidity,0) + " %</span></td>");
+            client.println("<tr><td>Humidity:<br><br><span class='values'>" + String(BME1_humidity,0) + " %</span></td><td>Humidity:<br><br><span class='values'>" + String(BME2_humidity,0) + " %</span></td>");
             client.println("<td>");
             
             // Display current state, and ON/OFF buttons for GPIO 5  
-            client.println("<p>GPIO 5 - State " + output5State + "</p>");
+            client.println("<p>Dryer 2<br>Status: " + output5State + "</p>");
             // If the output5State is off, it displays the ON button       
             if (output5State=="off") {
               client.println("<p><a href=\"/5/on\"><button class=\"button\">ON</button></a></p>");
@@ -192,8 +197,8 @@ void loop(){
             }             
                         
             client.println("</td></tr>"); 
-            client.println("<tr><td>Pressure:<br><span class='values'>" + String(BME1_pressure,1 ) + "hPa</span></td><td>Pressure:<br><span class='values'>" + String(BME2_pressure,1 ) + "hPa</span></td><td></td>");
-            client.println("<tr><td>Altitude:<br><span class='values'>" + String(BME1_altitude,1 ) + "m</span></td><td>Altitude:<br><span class='values'>" + String(BME2_altitude,1 ) + "m</span></td><td></td>");
+            //client.println("<tr><td>Pressure:<br><span class='values'>" + String(BME1_pressure,1 ) + "hPa</span></td><td>Pressure:<br><span class='values'>" + String(BME2_pressure,1 ) + "hPa</span></td><td></td>");
+            //client.println("<tr><td>Altitude:<br><span class='values'>" + String(BME1_altitude,1 ) + "m</span></td><td>Altitude:<br><span class='values'>" + String(BME2_altitude,1 ) + "m</span></td><td></td>");
             client.println("</table></center>");
             client.println("</body></html>");
             
