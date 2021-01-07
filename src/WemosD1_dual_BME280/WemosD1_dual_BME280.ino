@@ -8,6 +8,8 @@
 #include <SPI.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h> //https://github.com/adafruit/Adafruit_BME280_Library
+#include <NTPClient.h>
+#include <WiFiUdp.h>
 
 // assign the ESP8266 pins to arduino pins
 #define D0 16
@@ -29,6 +31,14 @@
 // Replace with your network credentials
 const char* ssid     = "PD5DJ-WLAN-01";
 const char* password = "$aapnootmies$";
+
+// NTP Client constants
+const long utcOffsetInSeconds = 3600;
+char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+
+// Define NTP Client to get time
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
 
 // Set web server port number to 80
 WiFiServer server(80);
@@ -61,8 +71,8 @@ String output5State = "off";
 String output4State = "off";
 
 // Assign output variables to GPIO pins
-const int output5 = D0;
-const int output4 = D8;
+const int output5 = D8;
+const int output4 = D7;
 
 // Current time
 unsigned long currentTime = millis();
@@ -71,6 +81,10 @@ unsigned long previousTime = 0;
 // Define timeout time in milliseconds (example: 2000ms = 2s)
 const long timeoutTime = 2000;
 
+
+
+
+/*
 // Set your Static IP address
 IPAddress local_IP(192, 168, 1, 80);
 // Set your Gateway IP address
@@ -80,6 +94,11 @@ IPAddress subnet(255, 255, 255, 0);
 IPAddress primaryDNS(192, 168, 1, 1);   //optional
 IPAddress secondaryDNS(0, 0, 0, 0); //optional
 
+*/
+
+// Set Humidity Threshold, used to show color of text
+const int Humidity_Threshold = 15;
+
 void setup() {
   Serial.begin(115200);
 
@@ -88,6 +107,8 @@ void setup() {
   // Reads first hPa pressure to use as 0m offset.
   BME1_hpaoffset = (bme1.readPressure() / 100.0F);
   BME2_hpaoffset = (bme2.readPressure() / 100.0F);
+
+  timeClient.begin();
   
   // Initialize the output variables as outputs
   pinMode(output5, OUTPUT);
@@ -96,11 +117,13 @@ void setup() {
   digitalWrite(output5, LOW);
   digitalWrite(output4, LOW);
 
-  // Configures static IP address
-  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
-    Serial.println("STA Failed to configure");
-  }
-
+  /*
+    // Configures static IP address
+    if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
+      Serial.println("STA Failed to configure");
+    }
+  */
+  
   // Connect to Wi-Fi network with SSID and password
   Serial.print("Connecting to ");
   Serial.println(ssid);
@@ -118,6 +141,7 @@ void setup() {
 }
 
 void loop(){
+  timeClient.update();
   ReadSensors();
   WiFiClient client = server.available();   // Listen for incoming clients
 
@@ -171,7 +195,8 @@ void loop(){
             // Feel free to change the background-color and font-size attributes to fit your preferences
             client.println("<style>");
             client.println("body { background-color: #CCCCCC ;}");
-            client.println(".values { font-weight: bold; font-size: 50px ; color: red; }");
+            client.println(".values { font-weight: bold; font-size: 50px ; color: green; }");
+            client.println(".valuesRed { font-weight: bold; font-size: 50px ; color: red; }");
             client.println("table, th { font-size: 40px ; border: 1px solid black; width: 300px; text-align:center ;}");
             client.println("table, td { font-size: 30px ; border: 1px solid black; width: 300px; text-align:center ;}");
             client.println("table { border-collapse: collapse; background-color: #bde9ba; width: 600px;}");
@@ -181,9 +206,11 @@ void loop(){
             client.println("</style></head>");
             
             // Web Page Heading
-            client.println("<body>");
+            client.println("<body><center>");
             client.println("<h1>Filament Dryer Monitor</h1>");
-            client.println("<center><table border='1'>");
+            client.println("<table border='1'>");
+            
+            client.println("<tr><td colspan='3'>" + String(daysOfTheWeek[timeClient.getDay()]) + ", " + String(timeClient.getFormattedTime()) + "</td></tr>"); //String(timeClient.getHours()) + ":" + String(timeClient.getMinutes()) + ":" + String(timeClient.getSeconds()) + "</td></tr>");
             client.println("<tr><th>Dryer 1</th><th>Dryer 2</th><th>Power</th></tr>");
             client.println("<tr><td>Temperature:<br><br><span class='values'>" + String(BME1_temperature,1 ) + char(176) + "C</span></td><td>Temperature:<br><br><span class='values'>" + String(BME2_temperature,1 ) + char(176) + "C</span></td>");
             client.println("<td>");
@@ -198,8 +225,24 @@ void loop(){
             }
                         
             client.println("</td><tr>  "); 
-            client.println("<tr><td>Humidity:<br><br><span class='values'>" + String(BME1_humidity,0) + " %</span></td><td>Humidity:<br><br><span class='values'>" + String(BME2_humidity,0) + " %</span></td>");
-            client.println("<td>");
+            client.println("<tr><td>Humidity:<br><br>");
+
+            if (BME1_humidity < Humidity_Threshold) {
+              client.println("<span class='values'>");  
+            } else {
+              client.println("<span class='valuesRed'>");
+            }
+            
+            
+            client.println(String(BME1_humidity,0) + " %</span>" + "</td><td>Humidity:<br><br>");
+            
+            if (BME2_humidity < Humidity_Threshold) {
+              client.println("<span class='values'>");  
+            } else {
+              client.println("<span class='valuesRed'>");
+            }
+            
+            client.println(String(BME2_humidity,0) + " %</span>" + "</td><td>");
             
             // Display current state, and ON/OFF buttons for GPIO 5  
             client.println("<p>Dryer 2<br>Status: " + output5State + "</p>");
